@@ -11,4 +11,4 @@ services:
   master_redis:
     image: redis/redis-stack:latest
     ports:
-      - "6379:6379"
+      - "6380:6380"

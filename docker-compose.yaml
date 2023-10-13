@@ -20,7 +20,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:latest
     depends_on:
-        - zookeeper
+      - zookeeper
     ports:
       - "9092:9092"
     environment:
@@ -35,7 +35,7 @@ services:
       - '9000:9000'
       - '9001:9001'
     volumes:
-      -  ~/minio/data:/data
+      - ~/minio/data:/data
     environment:
       - MINIO_ROOT_USER=user
       - MINIO_ROOT_PASSWORD=password
@@ -49,6 +49,8 @@ services:
       sleep 10;
       /usr/bin/mc config host add minio http://minio:9000 user password;
       /usr/bin/mc mb minio/corpbucket;
+      /usr/bin/mc mb minio/user-service-bucket;
       /usr/bin/mc anonymous set public minio/corpbucket;
+      /usr/bin/mc anonymous set public minio/user-service-bucket;
       exit 0;
       "

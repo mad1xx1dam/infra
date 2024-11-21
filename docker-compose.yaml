@@ -48,6 +48,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - kafka-net
 
   netcat:
     image: subfuzion/netcat
@@ -73,6 +75,8 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3 # Репликация на 3 ноды кафки
       KAFKA_LOG4J_LOGGERS: "kafka.controller=WARN,state.change.logger=INFO" # логи
+    networks:
+      - kafka-net
 
   kafka-2:
     image: bitnami/kafka:latest
@@ -90,6 +94,8 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_LOG4J_LOGGERS: "kafka.controller=WARN,state.change.logger=INFO"
+    networks:
+      - kafka-net
 
   kafka-3:
     image: bitnami/kafka:latest
@@ -107,3 +113,9 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_LOG4J_LOGGERS: "kafka.controller=WARN,state.change.logger=INFO"
+    networks:
+      - kafka-net
+
+networks:
+  kafka-net:
+    driver: bridge

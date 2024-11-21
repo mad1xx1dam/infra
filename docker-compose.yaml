@@ -35,32 +35,40 @@ services:
       exit 0;
       "
 
-  zookeeper: # Zookeeper для кафка на порту 2181
+  zookeeper: # Zookeeper для Kafka на порту 2181
     image: bitnami/zookeeper:latest
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000 # 2мс обновление
+      ALLOW_ANONYMOUS_LOGIN: "yes" # На проде не ставим yes ) по умолчанию - no
     ports:
       - "22181:2181"
+    healthcheck: # Проверка функционирования Zookeeper
+      test: [ "CMD", "nc", "-z", "localhost", "2181" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  netcat:
+    image: subfuzion/netcat
+    container_name: netcat
+    depends_on:
+      - zookeeper
+    stdin_open: true
+    tty: true
 
   kafka-1: # 1 нода кафки
     image: bitnami/kafka:latest
     depends_on:
-      - zookeeper
-    entrypoint: # Проверка что zookeeper запщуен прежде чем запускать ноды
-      - sh
-      - -c
-      - |
-        while ! nc -z zookeeper 2181; do
-          sleep 1;
-        done;
-        /entrypoint.sh
+      zookeeper:
+        condition: service_healthy
     ports:
       - "29092:29092" # Порт по которому искать ноду здесь: 29092
     environment:
       KAFKA_BROKER_ID: 1 # ID Брокера 1/3
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181  #коннект к zookeeper все ноды к одному порту
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092,PLAINTEXT_HOST://localhost:29092 # адресс ноды
+      KAFKA_LISTENERS: PLAINTEXT://:9092,PLAINTEXT_HOST://:29092 # Определение всех слушателей
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092,PLAINTEXT_HOST://localhost:29092 # Внешняя доступность
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT # протокол шифрование без него
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3 # Репликация на 3 ноды кафки
@@ -69,22 +77,16 @@ services:
   kafka-2:
     image: bitnami/kafka:latest
     depends_on:
-      - zookeeper
-    entrypoint:
-      - sh
-      - -c
-      - |
-        while ! nc -z zookeeper 2181; do
-          sleep 1;
-        done;
-        /entrypoint.sh
+      zookeeper:
+        condition: service_healthy
     ports:
       - "29093:29093" # порт 2ой ноды
     environment:
       KAFKA_BROKER_ID: 2
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9093,PLAINTEXT_HOST://localhost:29093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://:9092,PLAINTEXT_HOST://:29092 # Определение всех слушателей
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092,PLAINTEXT_HOST://localhost:29092 # Внешняя доступность
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT # протокол шифрование без него
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_LOG4J_LOGGERS: "kafka.controller=WARN,state.change.logger=INFO"
@@ -92,22 +94,16 @@ services:
   kafka-3:
     image: bitnami/kafka:latest
     depends_on:
-      - zookeeper
-    entrypoint:
-      - sh
-      - -c
-      - |
-        while ! nc -z zookeeper 2181; do
-          sleep 1;
-        done;
-        /entrypoint.sh
+      zookeeper:
+        condition: service_healthy
     ports:
       - "29094:29094" # порт 3ей ноды
     environment:
       KAFKA_BROKER_ID: 3
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3:9094,PLAINTEXT_HOST://localhost:29094
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://:9092,PLAINTEXT_HOST://:29092 # Определение всех слушателей
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092,PLAINTEXT_HOST://localhost:29092 # Внешняя доступность
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT # протокол шифрование без него
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_LOG4J_LOGGERS: "kafka.controller=WARN,state.change.logger=INFO"

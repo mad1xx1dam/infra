@@ -8,10 +8,18 @@ services:
       - POSTGRES_DB=postgres
     ports:
       - '5432:5432'
-  master_redis:
+#  master_redis:
+#    image: redis/redis-stack:latest
+#    ports:
+#      - "6379:6379"
+  redis_feed_cache:
     image: redis/redis-stack:latest
     ports:
       - "6379:6379"
+      - "8001:8001"
+    volumes:
+      - "./redis.conf:/usr/local/etc/redis/redis.conf"
+#    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
   minio:
     image: minio/minio
     ports:

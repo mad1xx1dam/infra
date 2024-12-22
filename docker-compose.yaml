@@ -18,7 +18,7 @@ services:
       - '9000:9000'
       - '9001:9001'
     volumes:
-      -  ~/minio/data:/data
+      - ~/minio/data:/data
     environment:
       - MINIO_ROOT_USER=user
       - MINIO_ROOT_PASSWORD=password
@@ -46,6 +46,11 @@ services:
       - "22181:2181"
     networks:
       - kafka-net
+    volumes:
+      - ./zoo-1.cfg:/etc/kafka/zoo.cfg
+      - zookeeper-1-data:/var/lib/zookeeper/data
+      - zookeeper-1-log:/var/lib/zookeeper/log
+      - zookeeper-1-secrets:/etc/zookeeper/secrets
 
   zookeeper-2:
     image: confluentinc/cp-zookeeper:latest
@@ -58,6 +63,11 @@ services:
       - "32181:2181"
     networks:
       - kafka-net
+    volumes:
+      - ./zoo-2.cfg:/etc/kafka/zoo.cfg
+      - zookeeper-2-data:/var/lib/zookeeper/data
+      - zookeeper-2-log:/var/lib/zookeeper/log
+      - zookeeper-2-secrets:/etc/zookeeper/secrets
 
   broker-1:
     image: confluentinc/cp-kafka:latest
@@ -67,7 +77,6 @@ services:
       - "19092:19092"
     depends_on:
       - zookeeper-1
-      - zookeeper-2
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
@@ -76,9 +85,11 @@ services:
       KAFKA_LISTENERS: INTERNAL://broker-1:9092,EXTERNAL://0.0.0.0:19092
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://broker-1:9092,EXTERNAL://localhost:19092
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      CLUSTER_ID: "wJXcskXlQRemiQjL-blpYQ"
     networks:
       - kafka-net
+    volumes:
+      - broker-1-data:/var/lib/kafka/data
+      - broker-1-secrets:/etc/kafka/secrets
 
   broker-2:
     image: confluentinc/cp-kafka:latest
@@ -88,7 +99,6 @@ services:
       - "19093:19093"
     depends_on:
       - zookeeper-1
-      - zookeeper-2
     environment:
       KAFKA_BROKER_ID: 2
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
@@ -97,9 +107,11 @@ services:
       KAFKA_LISTENERS: INTERNAL://broker-2:9092,EXTERNAL://0.0.0.0:19093
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://broker-2:9092,EXTERNAL://localhost:19093
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      CLUSTER_ID: "wJXcskXlQRemiQjL-blpYQ"
     networks:
       - kafka-net
+    volumes:
+      - broker-2-data:/var/lib/kafka/data
+      - broker-2-secrets:/etc/kafka/secrets
 
   broker-3:
     image: confluentinc/cp-kafka:latest
@@ -109,7 +121,6 @@ services:
       - "19094:19094"
     depends_on:
       - zookeeper-1
-      - zookeeper-2
     environment:
       KAFKA_BROKER_ID: 3
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
@@ -118,9 +129,11 @@ services:
       KAFKA_LISTENERS: INTERNAL://broker-3:9092,EXTERNAL://0.0.0.0:19094
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://broker-3:9092,EXTERNAL://localhost:19094
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      CLUSTER_ID: "wJXcskXlQRemiQjL-blpYQ"
     networks:
       - kafka-net
+    volumes:
+      - broker-3-data:/var/lib/kafka/data
+      - broker-3-secrets:/etc/kafka/secrets
 
   kafka-ui:
     container_name: kafka-ui
@@ -135,5 +148,96 @@ services:
     networks:
       - kafka-net
 
+  elasticsearch:
+    image: elasticsearch:8.8.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - kafka-net
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9200" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  kibana:
+    image: kibana:8.8.0
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    networks:
+      - kafka-net
+
+  kafka-connect:
+    image: confluentinc/cp-kafka-connect:7.2.1
+    container_name: kafka-connect
+    ports:
+      - "8083:8083"
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: broker-1:9092,broker-2:9092,broker-3:9092
+      CONNECT_REST_PORT: 8083
+      CONNECT_REST_ADVERTISED_HOST_NAME: localhost
+      CONNECT_GROUP_ID: kafka-connect-cluster
+      CONNECT_CONFIG_STORAGE_TOPIC: _connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: _connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: _connect-status
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_TASKS_MAX: 12
+      CONNECT_PLUGIN_PATH: /usr/share/java,/etc/kafka-connect/plugins
+    networks:
+      - kafka-net
+    volumes:
+      - ./plugins:/etc/kafka-connect/plugins
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:latest
+    container_name: schema-registry
+    depends_on:
+      - broker-1
+      - broker-2
+      - broker-3
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker-1:9092,broker-2:9092,broker-3:9092'
+      SCHEMA_REGISTRY_HOST_NAME: "schema-registry"
+      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
+    networks:
+      - kafka-net
+
+volumes:
+  broker-1-data:
+  broker-1-secrets:
+  broker-2-data:
+  broker-2-secrets:
+  broker-3-data:
+  broker-3-secrets:
+  zookeeper-1-data:
+  zookeeper-1-log:
+  zookeeper-1-secrets:
+  zookeeper-2-data:
+  zookeeper-2-log:
+  zookeeper-2-secrets:
+  elasticsearch-data:
+    driver: local
+
 networks:
   kafka-net:
+    driver: bridge
+  app-network:
+    driver: bridge

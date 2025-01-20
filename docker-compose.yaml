@@ -51,6 +51,7 @@ services:
       KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_CFG_NUM_PARTITIONS: 3
 
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
@@ -65,4 +66,3 @@ services:
 
 volumes:
   kafka_data:
-  kafka-2_data:

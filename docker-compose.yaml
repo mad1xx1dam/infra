@@ -76,7 +76,12 @@ services:
         like_comment:1:1, 
         post_comment_likes_update:1:1, 
         profile_view:1:1,
-        premium_bought:1:1
+        premium_bought:1:1,
+        mentorship_request_received,
+        mentorship_request_accepted,
+        event_start,
+        new_follower,
+        user_ban
     ports:
       - "9092:9092"
     depends_on:

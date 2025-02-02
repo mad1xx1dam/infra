@@ -19,7 +19,7 @@ services:
       - '9000:9000'
       - '9001:9001'
     volumes:
-      -  ~/minio/data:/data
+      - ~/minio/data:/data
     environment:
       - MINIO_ROOT_USER=user
       - MINIO_ROOT_PASSWORD=password
@@ -49,37 +49,27 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
 
-  # ------------------ Добавляем Zookeeper, Kafka, Kafka UI ------------------
+  # ------------------ Добавляем Zookeeper, Kafka ------------------
 
-  zookeeper:
+  master_zookeeper:
     image: confluentinc/cp-zookeeper:latest
-    container_name: zookeeper
+    container_name: master_zookeeper
+    platform: linux/arm64
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_CLIENT_PORT: "2181"
+      ZOOKEEPER_TICK_TIME: "2000"
     ports:
       - "2181:2181"
-    volumes:
-      - zookeeper_data:/var/lib/zookeeper/data
-      - zookeeper_log_data:/var/lib/zookeeper/log
 
-  kafka:
+  master_kafka:
     image: confluentinc/cp-kafka:latest
-    container_name: kafka
-    depends_on:
-      - zookeeper
-    # Открываем 2 порта наружу:
-    #   9092 для внутренней сети Docker
-    #   9093 для внешних клиентов (на хосте)
-    ports:
-      - "9092:9092"
-      - "9093:9093"
-    volumes:
-      - kafka_data:/var/lib/kafka/data
-      - kafka_logs:/var/log/kafka
+    container_name: master_kafka
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ZOOKEEPER_CONNECT: "master_zookeeper:2181"
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
       KAFKA_CREATE_TOPICS: |
         posts:1:1, 
@@ -93,40 +83,22 @@ services:
         like_comment:1:1, 
         post_comment_likes_update:1:1, 
         profile_view:1:1,
-
-      # Два слушателя:
-      #   INSIDE://0.0.0.0:9092 — для внутренних контейнеров
-      #   OUTSIDE://0.0.0.0:9093 — для хост-машины
-      KAFKA_LISTENERS: INSIDE://0.0.0.0:9092,OUTSIDE://0.0.0.0:9093
-
-      # Соответственно рекламируем внутри Docker как kafka:9092, снаружи — как localhost:9093
-      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9092,OUTSIDE://localhost:9093
-
-      # Описание протоколов
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
-
-      # Межброкерское взаимодействие
-      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
-
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: kafka-ui
-    depends_on:
-      - kafka
-      - zookeeper
     ports:
-      - "8083:8080"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local
-      # Подключение к Kafka изнутри Docker по имени "kafka:9092"
-      KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: kafka:9092
-      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      - "9092:9092"
+    depends_on:
+      - master_zookeeper
 
-# ------------------ Тома для хранения данных (Zookeeper, Kafka и т.п.) ------------------
-volumes:
-  zookeeper_data:
-  zookeeper_log_data:
-  kafka_data:
-  kafka_logs:
+  akhq:
+    image: tchiotludo/akhq
+    container_name: akhq
+    environment:
+      AKHQ_CONFIGURATION: |-
+        akhq:
+          connections:
+            kafka-docker:
+              properties:
+                bootstrap.servers: "master_kafka:9092"
+    ports:
+      - "8088:8080"
+    depends_on:
+      - master_kafka

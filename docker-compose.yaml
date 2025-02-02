@@ -32,6 +32,8 @@ services:
       /usr/bin/mc config host add minio http://minio:9000 user password;
       /usr/bin/mc mb minio/corpbucket;
       /usr/bin/mc anonymous set public minio/corpbucket;
+      /usr/bin/mc mb minio/user-avatars;
+      /usr/bin/mc anonymous set public minio/user-avatars;
       exit 0;
       "
 

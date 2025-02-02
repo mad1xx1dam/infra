@@ -80,6 +80,19 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_CREATE_TOPICS: |
+        posts:1:1, 
+        post_views:1:1, 
+        likes:1:1, 
+        comments:1:1, 
+        posts_update_feeds:1:1, 
+        post_views_update:1:1, 
+        post_likes_update:1:1, 
+        post_comments_update:1:1, 
+        like_comment:1:1, 
+        post_comment_likes_update:1:1, 
+        profile_view:1:1,
 
       # Два слушателя:
       #   INSIDE://0.0.0.0:9092 — для внутренних контейнеров

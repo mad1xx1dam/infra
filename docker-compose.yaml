@@ -64,6 +64,6 @@ services:
       - kafka
     container_name: kafka-ui
     ports:
-      - "9080:9000"
+      - "9090:9000"
     environment:
       KAFKA_BROKER_CONNECT: "kafka:9092"

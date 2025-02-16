@@ -18,7 +18,7 @@ services:
       - '9000:9000'
       - '9001:9001'
     volumes:
-      -  ~/minio/data:/data
+      - ~/minio/data:/data
     environment:
       - MINIO_ROOT_USER=user
       - MINIO_ROOT_PASSWORD=password
@@ -53,17 +53,17 @@ services:
       KAFKA_NUM_PARTITIONS: 3
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
       KAFKA_LOG_RETENTION_MINUTES: 10
-      KAFKA_LOG_DIRS: /var/lib/kafka/data
     volumes:
-      - ~/kafka/data:/var/lib/kafka/data
+      - ~/kafka/data:/tmp/kraft-combined-logs
+      - ./kafka-create-topics/create-topics.sh:/kafka-topics.sh
     ports:
       - "9092:9092"
-  kafdrop:
-    image: obsidiandynamics/kafdrop:4.1.0
-    depends_on:
-      - kafka
-    container_name: kafka-ui
-    ports:
-      - "9090:9000"
-    environment:
-      KAFKA_BROKER_CONNECT: "kafka:9092"
+    command: >
+      /bin/bash -c "
+      if [ ! -f /tmp/kraft-combined-logs/meta.properties ]; then
+      echo 'Initializing Kafka storage...';
+      /opt/kafka/bin/kafka-storage.sh format --ignore-formatted --cluster-id $(/opt/kafka/bin/kafka-storage.sh random-uuid) --config /opt/kafka/config/kraft/server.properties;
+      fi;
+      /opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/kraft/server.properties &
+      while ! nc -z kafka 9092; do sleep 2; done;
+      /kafka-topics.sh && wait"

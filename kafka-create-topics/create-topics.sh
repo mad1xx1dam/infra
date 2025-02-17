@@ -6,8 +6,6 @@ echo "Kafka is up, creating topics..."
 
 TOPICS=(
     "user-profile-viewed:3:1" # topicName:partitions:replicas
-    "user-profile-viewed.DLT:1:1"
-    "test:3:1"
 )
 
 for topic in "${TOPICS[@]}"; do

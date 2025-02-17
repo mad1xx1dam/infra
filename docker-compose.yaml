@@ -53,6 +53,7 @@ services:
       KAFKA_NUM_PARTITIONS: 3
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
       KAFKA_LOG_RETENTION_MINUTES: 10
+    user: "root"
     volumes:
       - ~/kafka/data:/tmp/kraft-combined-logs
       - ./kafka-create-topics/create-topics.sh:/kafka-topics.sh
@@ -64,6 +65,7 @@ services:
       echo 'Initializing Kafka storage...';
       /opt/kafka/bin/kafka-storage.sh format --ignore-formatted --cluster-id $(/opt/kafka/bin/kafka-storage.sh random-uuid) --config /opt/kafka/config/kraft/server.properties;
       fi;
+      chmod +x /kafka-topics.sh;
       /opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/kraft/server.properties &
       while ! nc -z kafka 9092; do sleep 2; done;
       /kafka-topics.sh && wait"

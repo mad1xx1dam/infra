@@ -55,17 +55,23 @@ services:
       KAFKA_LOG_RETENTION_MINUTES: 10
     user: "root"
     volumes:
-      - ~/kafka/data:/tmp/kraft-combined-logs
+      - kafka_data:/tmp/kraft-combined-logs
       - ./kafka-create-topics/create-topics.sh:/kafka-topics.sh
     ports:
       - "9092:9092"
     command: >
       /bin/bash -c "
+      echo 'Fixing permissions on /tmp/kraft-combined-logs';
+      chown -R 1001:1001 /tmp/kraft-combined-logs;
+      echo 'Setting execute permission for /kafka-topics.sh';
+      chmod +x /kafka-topics.sh;
       if [ ! -f /tmp/kraft-combined-logs/meta.properties ]; then
       echo 'Initializing Kafka storage...';
       /opt/kafka/bin/kafka-storage.sh format --ignore-formatted --cluster-id $(/opt/kafka/bin/kafka-storage.sh random-uuid) --config /opt/kafka/config/kraft/server.properties;
       fi;
-      chmod +x /kafka-topics.sh;
       /opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/kraft/server.properties &
       while ! nc -z kafka 9092; do sleep 2; done;
       /kafka-topics.sh && wait"
+
+volumes:
+  kafka_data:

@@ -1,0 +1,17 @@
+user-profile-viewed:3:1
+user-like-post:5:1
+user-comment-post:5:1
+user-bought-premium:2:1
+user-follows-user:2:1
+user-fund-raised:3:1
+user-goal-completed:3:1
+user-give-recommendation:3:1
+user-request-recommendation:3:1
+user-mentorship-request:3:1
+user-mentorship-accepted:3:1
+user-post-viewed:5:1
+user-project-viewed:5:1
+user-get-skill:3:1
+event-started:3:1
+user-get-achievement:3:1
+user-skill-offer:2:1

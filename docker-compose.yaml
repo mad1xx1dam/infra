@@ -66,5 +66,18 @@ services:
     depends_on:
       - kafka
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1.2
+    restart: "no"
+    command:
+      - "start-dev"
+    ports:
+      - "9080:9080"
+    environment:
+      KC_HTTP_PORT: 9080
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: dev-mem
+
 volumes:
   kafka_data:

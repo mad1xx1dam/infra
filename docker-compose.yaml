@@ -18,7 +18,7 @@ services:
       - '9000:9000'
       - '9001:9001'
     volumes:
-      -  ~/minio/data:/data
+      - ~/minio/data:/data
     environment:
       - MINIO_ROOT_USER=user
       - MINIO_ROOT_PASSWORD=password
@@ -53,17 +53,21 @@ services:
       KAFKA_NUM_PARTITIONS: 3
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
       KAFKA_LOG_RETENTION_MINUTES: 10
-      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    user: "root"
     volumes:
-      - ~/kafka/data:/var/lib/kafka/data
+      - kafka_data:/tmp/kraft-combined-logs
     ports:
       - "9092:9092"
-  kafdrop:
-    image: obsidiandynamics/kafdrop:4.1.0
+  kafkatopics:
+    build: ./kafkatopics
+    network_mode: host
+    environment:
+      - KAFKA_BROKER=127.0.0.1:9092
     depends_on:
       - kafka
-    container_name: kafka-ui
-    ports:
-      - "9090:9000"
-    environment:
-      KAFKA_BROKER_CONNECT: "kafka:9092"
+    user: "root"
+    volumes:
+      - kafka_data:/tmp/kraft-combined-logs
+
+volumes:
+  kafka_data:

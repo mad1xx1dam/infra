@@ -48,7 +48,28 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
       KAFKA_CONTROLLER_LISTENER_NAMES: INSIDE
       KAFKA_LOG_DIRS: /var/lib/kafka/data
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+  kafka-topics-setup:
+      image: confluentinc/cp-kafka:latest
+      depends_on:
+        - kafka
+      entrypoint: >
+        /bin/sh -c "
+        sleep 10;
+        kafka-topics --create --topic notification_like_topic --bootstrap-server kafka:9093 --partitions 3 --replication-factor 1;
+        kafka-topics --create --topic notification_comment_topic --bootstrap-server kafka:9093 --partitions 2 --replication-factor 1;
+        kafka-topics --create --topic analytics_like_topic --bootstrap-server kafka:9093 --partitions 3 --replication-factor 2;
+        kafka-topics --create --topic analytics_comment_topic --bootstrap-server kafka:9093 --partitions 1 --replication-factor 1;
+        kafka-topics --create --topic userViewProfileTopic --bootstrap-server kafka:9093 --partitions 3 --replication-factor 1;
+        exit 0;
+        "
+
+volumes:
+  kafka_data:
+    driver: local

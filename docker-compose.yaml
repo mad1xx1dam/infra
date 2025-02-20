@@ -1,13 +1,15 @@
-version: '3'
+version: '3.8'
+
 services:
   master_postgres:
     image: postgres:13.3
     environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=postgres
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
     ports:
-      - '5432:5432'
+      - "5432:5432"
+
   master_redis:
     image: redis/redis-stack:latest
     ports:
@@ -15,13 +17,13 @@ services:
   minio:
     image: minio/minio
     ports:
-      - '9000:9000'
-      - '9001:9001'
+      - "9000:9000"
+      - "9001:9001"
     volumes:
-      -  ~/minio/data:/data
+      - ~/minio/data:/data
     environment:
-      - MINIO_ROOT_USER=user
-      - MINIO_ROOT_PASSWORD=password
+      MINIO_ROOT_USER: user
+      MINIO_ROOT_PASSWORD: password
     command: server --console-address :9001 /data
   createbuckets:
     image: minio/mc
@@ -35,3 +37,33 @@ services:
       /usr/bin/mc anonymous set public minio/corpbucket;
       exit 0;
       "
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: bitnami/kafka:latest
+    environment:
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_CREATE_TOPICS: "posts:1:1,likes:1:1,comments:1:1"
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      DYNAMIC_CONFIG_ENABLED: "true"
+    depends_on:
+      - kafka

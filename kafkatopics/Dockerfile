@@ -2,7 +2,7 @@ FROM apache/kafka:3.9.0
 
 ENTRYPOINT []
 
-COPY topics.txt /etc/kafka/topics.txt
+COPY topics.properties /etc/kafka/topics.txt
 
 CMD /bin/bash -c "\
     echo 'Waiting for Kafka to be fully up...'; \

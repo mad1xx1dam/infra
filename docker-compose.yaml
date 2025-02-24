@@ -67,7 +67,7 @@ services:
         kafka-topics --create --topic analytics_like_topic --bootstrap-server kafka:9093 --partitions 3 --replication-factor 2;
         kafka-topics --create --topic analytics_comment_topic --bootstrap-server kafka:9093 --partitions 1 --replication-factor 1;
         kafka-topics --create --topic user_ban_topic --bootstrap-server kafka:9093 --partitions 1 --replication-factor 1;
-        kafka-topics --create --topic userViewProfileTopic --bootstrap-server kafka:9093 --partitions 3 --replication-factor 1;
+        kafka-topics --create --topic analytics_user_view_profile_topic --bootstrap-server kafka:9093 --partitions 1 --replication-factor 1;
         exit 0;
         "
 
